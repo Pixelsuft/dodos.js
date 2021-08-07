@@ -171,23 +171,22 @@
             const game = new Uint8Array(game_content ? game_content : 0);
             const result = new Uint8Array(529514496);
             result.set(new Uint8Array(part1), 0);
-            result.set(game, 6967296);
+            result.set(game, 6973440);
             var str_hex = h(game.byteLength, 0).slice(2);
             if (str_hex.length/2 !== parseInt(str_hex.length/2))
               str_hex = '0' + str_hex;
             const hex = str_hex.match(/.{1,2}/g).reverse();
             for (var i = 0; i < hex.length; i++) {
-                result.set([parseInt("0x" + hex[i], undefined)], 6828156 + i);
+                result.set([parseInt("0x" + hex[i], undefined)], 6965372 + i);
             }
-            const buf = new SyncBuffer(result.buffer);
-            fn(buf);
+            fn(new SyncBuffer(result.buffer));
         }
 
         var oses = [{
             id: "msdos622",
             hda: {
                 "url1": "images/msdos622_1.img",
-                "size1": 6967296,
+                "size1": 6973440,
                 "async": false,
                 "zip_url": "images/Disk1.zip",
                 "zip_size": 955729,
@@ -195,7 +194,7 @@
             },
             memory_size: 64 * 1024 * 1024,
             boot_order: 0x132,
-            name: "MS-DOS",
+            name: "MS-DOS 6.22",
         }];
 
         if (DEBUG) {
