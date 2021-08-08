@@ -7,7 +7,6 @@ closure-compiler/
 *.bak
 *.orig
 *.o
-*.bin
 *.fixture
 *.fuse_hidden*
 *.DS_Store
