@@ -71,11 +71,34 @@ function ScreenAdapter(screen_container, bus) {
 
     var screen = this;
 
+    const col_fix_type = parseInt(document.getElementById("color_fix").value, undefined);
+
+    function col(n) {
+        return "rgb(" + n[0] + ", " + n[1] + ", " + n[2] + ")";
+    }
+
+    function col_fix(n) {
+        return "rgb(" + n[0] + 85 + ", " + n[1] + 85 + ", " + n[2] + ")";
+    }
+
+    const hex_to_rgb = hex =>
+        hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, (m, r, g, b) => '#' + r + r + g + g + b + b)
+        .substring(1).match(/.{2}/g)
+        .map(x => parseInt(x, 16));
+
     // 0x12345 -> "#012345"
     function number_as_color(n) {
         n = n.toString(16);
+        n = "#" + Array(7 - n.length).join("0") + n;
 
-        return "#" + Array(7 - n.length).join("0") + n;
+        if (col_fix_type == 2)
+            return n;
+        if (col_fix_type == 0) {
+            n = hex_to_rgb(n);
+            if (n[0] == n[2] || n[1] == n[2] || n[0] == n[1] && n[0] == 0 && n[2] > 85)
+                return col(n);
+            return col_fix(n);
+        }
     }
 
     function process_text(text) {
