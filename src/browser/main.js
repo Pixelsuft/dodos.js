@@ -23,7 +23,7 @@
     }
 
     function set_title(text) {
-        document.title = text + " - dodos.js");
+        document.title = text + " - dodos.js";
     }
 
     function format_timestamp(time) {
@@ -198,8 +198,6 @@
                 "url2": "images/msdos622_2.zip",
                 "size2": 3828785,
                 "async": false,
-                "zip_url": "games/doom.zip",
-                "zip_size": 955729,
                 "on_load": msdos622
             },
             memory_size: document.getElementById("memory_size").value * 1024 * 1024,
@@ -333,23 +331,13 @@
             settings.preserve_mac_from_state_image = infos.preserve_mac_from_state_image;
 
             settings.acpi = infos.acpi;
-            settings.memory_size = infos.memory_size;
-            settings.vga_memory_size = infos.vga_memory_size;
+            settings.memory_size = document.getElementById("memory_size").value * 1024 * 1024;
+            settings.video_memory_size = document.getElementById("video_memory_size").value * 1024 * 1024;
 
             settings.id = infos.id;
 
             if (infos.boot_order !== undefined) {
                 settings.boot_order = infos.boot_order;
-            }
-
-            if (!DEBUG && infos.homepage) {
-                $("description").style.display = "block";
-                const link = document.createElement("a");
-                link.href = infos.homepage;
-                link.textContent = infos.name;
-                link.target = "_blank";
-                $("description").appendChild(document.createTextNode("Running "));
-                $("description").appendChild(link);
             }
 
             start_emulation(settings, done);

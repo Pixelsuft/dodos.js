@@ -560,28 +560,40 @@ V86Starter.prototype.continue_init = async function(emulator, options) {
                 function result2(part2_content) {
                     function zip_result(zip_content) {
                         f.on_file_load(part1_content, part2_content, zip_content, function(final_result) {
-                            console.log(final_result);
                             put_on_settings.call(this, f.name, final_result);
                             cont(index + 1);
                         }.bind(this));
                     }
-                    if (f.zip_url) {
-                        v86util.load_file(f.zip_url, {
+                    const zip_names = document.getElementById("game_image").value.split(";");
+                    const game_url = zip_names[0];
+                    if (game_url == "custom_game") {
+                        const file_elem = document.getElementById("custom_game_image");
+                        if (file_elem.files.length < 1) {
+                            alert("Please, select file!");
+                            location.reload();
+                        }
+                        const game_cont = file_elem.files[0];
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            zip_result.bind(this)(reader.result);
+                        }.bind(this);
+                        reader.readAsArrayBuffer(game_cont);
+                    } else {
+                        const game_size = parseInt(zip_names[1], undefined);
+                        v86util.load_file(game_url, {
                             done: zip_result.bind(this),
                             progress: function progress(e) {
                                 starter.emulator_bus.send("download-progress", {
                                     file_index: index,
                                     file_count: total,
-                                    file_name: f.zip_url,
+                                    file_name: game_url,
 
                                     lengthComputable: e.lengthComputable,
-                                    total: e.total || f.zip_size,
+                                    total: e.total || game_size,
                                     loaded: e.loaded,
                                 });
                             },
                         });
-                    } else {
-                        zip_result.bind(this)(false);
                     }
                 }
                 if (f.url2) {
