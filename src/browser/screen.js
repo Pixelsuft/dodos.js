@@ -68,6 +68,7 @@ function ScreenAdapter(screen_container, bus) {
         text_mode_height;
 
     var stopped = false;
+    var is_loaded = false;
 
     var screen = this;
 
@@ -99,11 +100,42 @@ function ScreenAdapter(screen_container, bus) {
                 return col(n);
             return col_fix(n);
         }
+        if (col_fix_type == 1)
+            return n;
     }
 
     function process_text(text) {
+        if (is_loaded) {
+            if (text.startsWith("dodosjs_autoexec_file_stopped")) {
+                if (confirm("Program finished. Do you want to exit?"))
+                    location.href = "index.html";
+            }
+            return;
+        }
         if (!text.trim())
             return;
+        if (text.startsWith("  inflating: ")) {
+            const zipfile = text.replace("inflating:", "").trim();
+            console.log("unzipping " + zipfile);
+            return;
+        }
+        if (text.startsWith("Starting MS-DOS...")) {
+            console.log("starting...");
+            return;
+        }
+        if (text.startsWith("HIMEM is testing extended memory...")) {
+            console.log("testing memory...");
+            return;
+        }
+        if (text.startsWith("HIMEM is testing extended memory...")) {
+            console.log("testing memory...");
+            return;
+        }
+        if (text.startsWith("starting_dodosjs_autoexec_file")) {
+            is_loaded = true;
+            console.log("started!");
+            return;
+        }
         // console.log("%c" + text, "background-color: black; color: white;");
     }
 
@@ -203,6 +235,7 @@ function ScreenAdapter(screen_container, bus) {
             image.src = graphic_screen.toDataURL("image/png");
             const w = window.open("");
             w.document.write(image.outerHTML);
+            w.document.title = "Screenshot";
         } catch (e) {}
     };
 
