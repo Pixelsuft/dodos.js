@@ -6,16 +6,14 @@
  *
  * @param {BusConnector} bus
  */
-function ScreenAdapter(screen_container, bus)
-{
+function ScreenAdapter(screen_container, bus) {
     console.assert(screen_container, "1st argument must be a DOM container");
 
     var
         graphic_screen = screen_container.getElementsByTagName("canvas")[0],
-        graphic_context = graphic_screen.getContext("2d", { alpha: false }),
-
-        text_screen = screen_container.getElementsByTagName("div")[0],
-        cursor_element = document.createElement("div");
+        graphic_context = graphic_screen.getContext("2d", {
+            alpha: false
+        });
 
     var
         graphic_image_data,
@@ -27,6 +25,17 @@ function ScreenAdapter(screen_container, bus)
 
         /** @type {number} */
         cursor_col,
+
+        /** @type {number} */
+        cursor_bg,
+
+        /** @type {number} */
+        cursor_fg,
+
+        /** @type {boolean} */
+        cursor_show,
+
+        last_cursor = [0, 0, '#000000'],
 
         /** @type {number} */
         scale_x = 1,
@@ -63,11 +72,16 @@ function ScreenAdapter(screen_container, bus)
     var screen = this;
 
     // 0x12345 -> "#012345"
-    function number_as_color(n)
-    {
+    function number_as_color(n) {
         n = n.toString(16);
 
         return "#" + Array(7 - n.length).join("0") + n;
+    }
+
+    function process_text(text) {
+        if (!text.trim())
+            return;
+        // console.log("%c" + text, "background-color: black; color: white;");
     }
 
 
@@ -96,27 +110,21 @@ function ScreenAdapter(screen_container, bus)
 
     /** @const */
     var charmap_low = new Uint16Array([
-        0x20,   0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022,
+        0x20, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022,
         0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C,
-        0x25BA, 0x25C4, 0x2195, 0x203C, 0xB6,   0xA7,   0x25AC, 0x21A8,
+        0x25BA, 0x25C4, 0x2195, 0x203C, 0xB6, 0xA7, 0x25AC, 0x21A8,
         0x2191, 0x2193, 0x2192, 0x2190, 0x221F, 0x2194, 0x25B2, 0x25BC
     ]);
 
     var charmap = [],
         chr;
 
-    for(var i = 0; i < 256; i++)
-    {
-        if(i > 127)
-        {
+    for (var i = 0; i < 256; i++) {
+        if (i > 127) {
             chr = charmap_high[i - 0x80];
-        }
-        else if(i < 32)
-        {
+        } else if (i < 32) {
             chr = charmap_low[i];
-        }
-        else
-        {
+        } else {
             chr = i;
         }
 
@@ -125,58 +133,40 @@ function ScreenAdapter(screen_container, bus)
 
     graphic_context["imageSmoothingEnabled"] = false;
 
-    cursor_element.style.position = "absolute";
-    cursor_element.style.backgroundColor = "#ccc";
-    cursor_element.style.width = "7px";
-    cursor_element.style.display = "inline-block";
-
-    text_screen.style.display = "block";
-    graphic_screen.style.display = "none";
+    graphic_screen.style.display = "block";
 
     this.bus = bus;
 
-    bus.register("screen-set-mode", function(data)
-    {
+    bus.register("screen-set-mode", function(data) {
         this.set_mode(data);
     }, this);
 
-    bus.register("screen-fill-buffer-end", function(data)
-    {
+    bus.register("screen-fill-buffer-end", function(data) {
         this.update_buffer(data);
     }, this);
 
-    bus.register("screen-put-char", function(data)
-    {
+    bus.register("screen-put-char", function(data) {
         //console.log(data);
         this.put_char(data[0], data[1], data[2], data[3], data[4]);
     }, this);
 
-    bus.register("screen-update-cursor", function(data)
-    {
+    bus.register("screen-update-cursor", function(data) {
         this.update_cursor(data[0], data[1]);
     }, this);
-    bus.register("screen-update-cursor-scanline", function(data)
-    {
-        this.update_cursor_scanline(data[0], data[1]);
-    }, this);
 
-    bus.register("screen-clear", function()
-    {
+    bus.register("screen-clear", function() {
         this.clear_screen();
     }, this);
 
-    bus.register("screen-set-size-text", function(data)
-    {
+    bus.register("screen-set-size-text", function(data) {
         this.set_size_text(data[0], data[1]);
     }, this);
-    bus.register("screen-set-size-graphical", function(data)
-    {
+    bus.register("screen-set-size-graphical", function(data) {
         this.set_size_graphical(data[0], data[1], data[2], data[3]);
     }, this);
 
 
-    this.init = function()
-    {
+    this.init = function() {
         // not necessary, because this gets initialized by the bios early,
         // but nicer to look at
         this.set_size_text(80, 25);
@@ -184,21 +174,17 @@ function ScreenAdapter(screen_container, bus)
         this.timer();
     };
 
-    this.make_screenshot = function()
-    {
+    this.make_screenshot = function() {
         try {
             const image = new Image();
             image.src = graphic_screen.toDataURL("image/png");
             const w = window.open("");
             w.document.write(image.outerHTML);
-        }
-        catch(e) {}
+        } catch (e) {}
     };
 
-    this.put_char = function(row, col, chr, bg_color, fg_color)
-    {
-        if(row < text_mode_height && col < text_mode_width)
-        {
+    this.put_char = function(row, col, chr, bg_color, fg_color) {
+        if (row < text_mode_height && col < text_mode_width) {
             var p = 3 * (row * text_mode_width + col);
 
             text_mode_data[p] = chr;
@@ -209,20 +195,15 @@ function ScreenAdapter(screen_container, bus)
         }
     };
 
-    this.timer = function()
-    {
-        if(!stopped)
-        {
+    this.timer = function() {
+        if (!stopped) {
             requestAnimationFrame(is_graphical ? update_graphical : update_text);
         }
     };
 
-    var update_text = function()
-    {
-        for(var i = 0; i < text_mode_height; i++)
-        {
-            if(changed_rows[i])
-            {
+    var update_text = function() {
+        for (var i = 0; i < text_mode_height; i++) {
+            if (changed_rows[i]) {
                 screen.text_update_row(i);
                 changed_rows[i] = 0;
             }
@@ -231,35 +212,35 @@ function ScreenAdapter(screen_container, bus)
         this.timer();
     }.bind(this);
 
-    var update_graphical = function()
-    {
+    var update_graphical = function() {
         this.bus.send("screen-fill-buffer");
         this.timer();
     }.bind(this);
 
-    this.destroy = function()
-    {
+    this.destroy = function() {
         stopped = true;
     };
 
-    this.set_mode = function(graphical)
-    {
+    this.set_mode = function(graphical) {
         is_graphical = graphical;
 
-        if(graphical)
-        {
-            text_screen.style.display = "none";
+        if (graphical) {
+            graphic_screen.width = graphical_mode_width;
+            graphic_screen.height = graphical_mode_height;
+            graphic_screen.style.width = graphical_mode_width * scale_x + "px";
+            graphic_screen.style.height = graphical_mode_height * scale_y + "px";
             graphic_screen.style.display = "block";
+        } else {
+            graphic_screen.style.display = "block";
+            graphic_screen.width = 720;
+            graphic_screen.height = 400;
+            graphic_screen.style.width = 720 * scale_x + "px";
+            graphic_screen.style.height = 400 * scale_y + "px";
         }
-        else
-        {
-            text_screen.style.display = "block";
-            graphic_screen.style.display = "none";
-        }
+        update_scale_graphic();
     };
 
-    this.clear_screen = function()
-    {
+    this.clear_screen = function() {
         graphic_context.fillStyle = "#000";
         graphic_context.fillRect(0, 0, graphic_screen.width, graphic_screen.height);
     };
@@ -268,10 +249,8 @@ function ScreenAdapter(screen_container, bus)
      * @param {number} cols
      * @param {number} rows
      */
-    this.set_size_text = function(cols, rows)
-    {
-        if(cols === text_mode_width && rows === text_mode_height)
-        {
+    this.set_size_text = function(cols, rows) {
+        if (cols === text_mode_width && rows === text_mode_height) {
             return;
         }
 
@@ -281,28 +260,15 @@ function ScreenAdapter(screen_container, bus)
         text_mode_width = cols;
         text_mode_height = rows;
 
-        while(text_screen.childNodes.length > rows)
-        {
-            text_screen.removeChild(text_screen.firstChild);
-        }
-
-        while(text_screen.childNodes.length < rows)
-        {
-            text_screen.appendChild(document.createElement("div"));
-        }
-
-        for(var i = 0; i < rows; i++)
-        {
+        for (var i = 0; i < rows; i++) {
             this.text_update_row(i);
         }
 
         update_scale_text();
     };
 
-    this.set_size_graphical = function(width, height, buffer_width, buffer_height)
-    {
-        if(DEBUG_SCREEN_LAYERS)
-        {
+    this.set_size_graphical = function(width, height, buffer_width, buffer_height) {
+        if (DEBUG_SCREEN_LAYERS) {
             // Draw the entire buffer. Useful for debugging
             // panning / page flipping / screen splitting code for both
             // v86 developers and os developers
@@ -329,12 +295,9 @@ function ScreenAdapter(screen_container, bus)
         graphical_mode_height = height;
 
         // add some scaling to tiny resolutions
-        if(graphical_mode_width <= 640)
-        {
+        if (graphical_mode_width <= 640) {
             base_scale = 2;
-        }
-        else
-        {
+        } else {
             base_scale = 1;
         }
 
@@ -342,8 +305,7 @@ function ScreenAdapter(screen_container, bus)
         update_scale_graphic();
     };
 
-    this.set_scale = function(s_x, s_y)
-    {
+    this.set_scale = function(s_x, s_y) {
         scale_x = s_x;
         scale_y = s_y;
 
@@ -352,90 +314,78 @@ function ScreenAdapter(screen_container, bus)
     };
     this.set_scale(scale_x, scale_y);
 
-    function update_scale_text()
-    {
-        elem_set_scale(text_screen, scale_x, scale_y, true);
+    function update_scale_text() {
+        elem_set_scale(graphic_screen, scale_x, scale_y, true);
     }
 
-    function update_scale_graphic()
-    {
+    function update_scale_graphic() {
         elem_set_scale(graphic_screen, scale_x * base_scale, scale_y * base_scale, false);
+        if (!is_graphical) {
+            graphic_screen.style.width = 720 * scale_x + "px";
+            graphic_screen.style.height = 400 * scale_y + "px";
+            graphic_screen.width = 720;
+            graphic_screen.height = 400;
+        }
+        if (is_graphical && graphical_mode_width == 320 && graphical_mode_height == 400) {
+            graphic_screen.style.width = 640 * scale_x + "px";
+            graphic_screen.style.height = 400 * scale_y + "px";
+        } else if (is_graphical && graphical_mode_width == 320 && graphical_mode_height == 200) {
+            graphic_screen.style.width = 640 * scale_x + "px";
+            graphic_screen.style.height = 400 * scale_y + "px";
+        } else if (is_graphical) {
+            graphic_screen.width = graphical_mode_width;
+            graphic_screen.height = graphical_mode_height;
+            graphic_screen.style.width = graphical_mode_width * scale_x + "px";
+            graphic_screen.style.height = graphical_mode_height * scale_y + "px";
+        }
     }
 
-    function elem_set_scale(elem, scale_x, scale_y, use_scale)
-    {
+    function elem_set_scale(elem, scale_x, scale_y, use_scale) {
         elem.style.width = "";
         elem.style.height = "";
 
-        if(use_scale)
-        {
+        if (use_scale) {
             elem.style.transform = "";
         }
 
         var rectangle = elem.getBoundingClientRect();
 
-        if(use_scale)
-        {
+        if (use_scale) {
             var scale_str = "";
 
             scale_str += scale_x === 1 ? "" : " scaleX(" + scale_x + ")";
             scale_str += scale_y === 1 ? "" : " scaleY(" + scale_y + ")";
 
             elem.style.transform = scale_str;
-        }
-        else
-        {
+        } else {
             // unblur non-fractional scales
-            if(scale_x % 1 === 0 && scale_y % 1 === 0)
-            {
+            if (scale_x % 1 === 0 && scale_y % 1 === 0) {
                 graphic_screen.style["imageRendering"] = "crisp-edges"; // firefox
                 graphic_screen.style["imageRendering"] = "pixelated";
                 graphic_screen.style["-ms-interpolation-mode"] = "nearest-neighbor";
-            }
-            else
-            {
+            } else {
                 graphic_screen.style.imageRendering = "";
                 graphic_screen.style["-ms-interpolation-mode"] = "";
             }
 
             // undo fractional css-to-device pixel ratios
             var device_pixel_ratio = window.devicePixelRatio || 1;
-            if(device_pixel_ratio % 1 !== 0)
-            {
+            if (device_pixel_ratio % 1 !== 0) {
                 scale_x /= device_pixel_ratio;
                 scale_y /= device_pixel_ratio;
             }
         }
 
-        if(scale_x !== 1)
-        {
+        if (scale_x !== 1) {
             elem.style.width = rectangle.width * scale_x + "px";
         }
-        if(scale_y !== 1)
-        {
+        if (scale_y !== 1) {
             elem.style.height = rectangle.height * scale_y + "px";
         }
     }
 
-    this.update_cursor_scanline = function(start, end)
-    {
-        if(start & 0x20)
-        {
-            cursor_element.style.display = "none";
-        }
-        else
-        {
-            cursor_element.style.display = "inline";
-
-            cursor_element.style.height = Math.min(15, end - start) + "px";
-            cursor_element.style.marginTop = Math.min(15, start) + "px";
-        }
-    };
-
-    this.update_cursor = function(row, col)
-    {
-        if(row !== cursor_row || col !== cursor_col)
-        {
+    this.update_cursor = function(row, col) {
+        if (row !== cursor_row || col !== cursor_col) {
             changed_rows[row] = 1;
             changed_rows[cursor_row] = 1;
 
@@ -444,72 +394,103 @@ function ScreenAdapter(screen_container, bus)
         }
     };
 
-    this.text_update_row = function(row)
-    {
-        var offset = 3 * row * text_mode_width,
-            row_element,
-            color_element,
-            fragment;
+    function drawer_cursor() {
+        if (!is_graphical) {
+            cursor_show = !cursor_show;
+            graphic_context.font = 'bold 15px bold Liberation Mono, DejaVu Sans Mono, Courier New, monospace';
+
+            graphic_context.fillStyle = cursor_show ? cursor_fg : cursor_bg;
+            graphic_context.fillRect(
+                9 * cursor_col - 1,
+                16 * cursor_row + 14,
+                9,
+                2
+            );
+        }
+    }
+    setInterval(drawer_cursor, 500);
+
+    this.text_update_row = function(row) {
+        var offset = 3 * row * text_mode_width;
 
         var bg_color,
             fg_color,
-            text;
+            text,
+            bg,
+            fg;
 
-        row_element = text_screen.childNodes[row];
-        fragment = document.createElement("div");
-
-        for(var i = 0; i < text_mode_width; )
-        {
-            color_element = document.createElement("span");
+        for (var i = 0; i < text_mode_width;) {
 
             bg_color = text_mode_data[offset + 1];
             fg_color = text_mode_data[offset + 2];
 
-            color_element.style.backgroundColor = number_as_color(bg_color);
-            color_element.style.color = number_as_color(fg_color);
-
             text = "";
 
             // put characters of the same color in one element
-            while(i < text_mode_width &&
+            while (i < text_mode_width &&
                 text_mode_data[offset + 1] === bg_color &&
-                text_mode_data[offset + 2] === fg_color)
-            {
+                text_mode_data[offset + 2] === fg_color) {
                 var ascii = text_mode_data[offset];
 
                 text += charmap[ascii];
+                process_text(text);
+
+                graphic_context.fillStyle = bg = number_as_color(bg_color);
+                graphic_context.fillRect(
+                    9 * i * scale_x,
+                    16 * row * scale_y,
+                    9 * charmap[ascii].length * scale_x,
+                    16 * scale_y
+                );
+
+                graphic_context.font = 'bold 15px bold Liberation Mono, DejaVu Sans Mono, Courier New, monospace';
+
+                graphic_context.fillStyle = fg = number_as_color(fg_color);
+                graphic_context.fillText(
+                    charmap[ascii],
+                    9 * i * scale_x,
+                    (16 * row + 12) * scale_y
+                );
+
+                if (cursor_show) graphic_context.fillStyle = cursor_fg;
+                else graphic_context.fillStyle = cursor_bg;
+                graphic_context.fillRect(
+                    (9 * cursor_col - 1) * scale_x,
+                    (16 * cursor_row + 14) * scale_y,
+                    9 * scale_x,
+                    2 * scale_y
+                );
+                if (last_cursor[0] !== cursor_row || last_cursor[1] !== cursor_col) {
+                    graphic_context.fillStyle = last_cursor[2];
+                    graphic_context.fillRect(
+                        (9 * last_cursor[1] - 1) * scale_x,
+                        (16 * last_cursor[0] + 14) * scale_y,
+                        9 * scale_x,
+                        2 * scale_y
+                    );
+                    last_cursor = [
+                        cursor_row,
+                        cursor_col,
+                        cursor_bg
+                    ];
+                }
 
                 i++;
                 offset += 3;
 
-                if(row === cursor_row)
-                {
-                    if(i === cursor_col)
-                    {
-                        // next row will be cursor
-                        // create new element
-                        break;
-                    }
-                    else if(i === cursor_col + 1)
-                    {
-                        // found the cursor
-                        fragment.appendChild(cursor_element);
+                if (row === cursor_row) {
+                    if (i === cursor_col || i === cursor_col + 1) {
+                        cursor_bg = bg;
+                        cursor_fg = fg;
                         break;
                     }
                 }
             }
-
-            color_element.textContent = text;
-            fragment.appendChild(color_element);
         }
-
-        row_element.parentNode.replaceChild(fragment, row_element);
     };
 
-    this.update_buffer = function(layers)
-    {
-        if(DEBUG_SCREEN_LAYERS)
-        {
+    this.update_buffer = function(layers) {
+        if (DEBUG_SCREEN_LAYERS) {
             // Draw the entire buffer. Useful for debugging
             // panning / page flipping / screen splitting code for both
             // v86 developers and os developers
@@ -522,8 +503,7 @@ function ScreenAdapter(screen_container, bus)
             // rectangle to visualise the layer instead.
             graphic_context.strokeStyle = "#0F0";
             graphic_context.lineWidth = 4;
-            layers.forEach((layer) =>
-            {
+            layers.forEach((layer) => {
                 graphic_context.strokeRect(
                     layer.buffer_x,
                     layer.buffer_y,
@@ -535,8 +515,7 @@ function ScreenAdapter(screen_container, bus)
             return;
         }
 
-        layers.forEach((layer) =>
-        {
+        layers.forEach((layer) => {
             graphic_context.putImageData(
                 graphic_image_data,
                 layer.screen_x - layer.buffer_x,

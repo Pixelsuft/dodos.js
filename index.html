@@ -137,7 +137,7 @@
     <input type="button" value="Reset" id="reset">
     <input type="button" value="Exit" id="exit">
     <input type="button" value="Send Ctrl-Alt-Del" id="ctrlaltdel">
-    <input type="button" value="Send Alt-Tab" id="alttab">
+    <input type="button" value="Send Alt-Tab" id="alttab" style="display: none">
     <input type="button" value="Get floppy image" id="get_fda_image">
     <input type="button" value="Get second floppy image" id="get_fdb_image">
     <input type="button" value="Get hard disk image" id="get_hda_image">
@@ -145,11 +145,11 @@
     <input type="button" value="Get cdrom image" id="get_cdrom_image">
     <input type="button" value="Save State" id="save_state">
     <input type="button" value="Load State" id="load_state"> <input type="file" style="display: none" id="load_state_input">
-    <input type="button" value="Memory Dump" id="memory_dump">
-    <input type="button" value="Disable mouse" id="toggle_mouse">
+    <input type="button" value="Memory Dump" id="memory_dump" style="display: none">
+    <input type="button" value="Disable mouse" id="toggle_mouse" style="display: none">
     <input type="button" value="Lock mouse" id="lock_mouse">
     <input type="button" value="Go fullscreen" id="fullscreen">
-    <input type="button" value="Take screenshot (only graphic modes)" id="take_screenshot">
+    <input type="button" value="Take screenshot" id="take_screenshot">
 
     <label>
       Scale:
@@ -175,7 +175,6 @@
 </div>
 
 <div id="screen_container" style="display: none">
-  <div id="screen"></div>
   <canvas id="vga"></canvas>
 
   <div style="position: absolute; top: 0; z-index: 10">
