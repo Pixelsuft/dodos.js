@@ -168,18 +168,28 @@
         }
 
         function msdos622(part1, part2, game_content, fn) {
-            const game = new Uint8Array(game_content ? game_content : 0);
-            const result = new Uint8Array(529514496);
-            result.set(new Uint8Array(part1), 0);
-            result.set(game, 6973440);
-            var str_hex = h(game.byteLength, 0).slice(2);
-            if (str_hex.length/2 !== parseInt(str_hex.length/2))
-              str_hex = '0' + str_hex;
-            const hex = str_hex.match(/.{1,2}/g).reverse();
-            for (var i = 0; i < hex.length; i++) {
-                result.set([parseInt("0x" + hex[i], undefined)], 6965372 + i);
-            }
-            fn(new SyncBuffer(result.buffer));
+            BrowserFS.install(window);
+            BrowserFS.configure({
+                fs: "ZipFS",
+                options: {
+                    zipData: BrowserFS.BFSRequire('buffer').Buffer.from(part2)
+                }
+            }, function(e) {
+                const fs = require('fs');
+                const game = new Uint8Array(game_content ? game_content : 0);
+                const result = new Uint8Array(529514496);
+                result.set(new Uint8Array(part1), 0);
+                result.set(game, 460800);
+                result.set(new Uint8Array(fs.readFileSync("/msdos622_2.img").buffer), 210176016);
+                var str_hex = h(game.byteLength, 0).slice(2);
+                if (str_hex.length / 2 !== parseInt(str_hex.length / 2))
+                    str_hex = '0' + str_hex;
+                const hex = str_hex.match(/.{1,2}/g).reverse();
+                for (var i = 0; i < hex.length; i++) {
+                    result.set([parseInt("0x" + hex[i], undefined)], 452732 + i);
+                }
+                fn(new SyncBuffer(result.buffer));
+            });
         }
 
         var oses = [{
@@ -187,8 +197,10 @@
             hda: {
                 "url1": "images/msdos622_1.img",
                 "size1": 6973440,
+                "url2": "images/msdos622_2.zip",
+                "size2": 3828785,
                 "async": false,
-                "zip_url": "images/Disk1.zip",
+                "zip_url": "games/doom.zip",
                 "zip_size": 955729,
                 "on_load": msdos622
             },

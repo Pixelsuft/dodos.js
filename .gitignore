@@ -6,10 +6,8 @@ tests/jit-paging/test-jit
 closure-compiler/
 *.bak
 *.orig
-*.wasm
 *.o
 *.bin
-*.img
 *.fixture
 *.fuse_hidden*
 *.DS_Store

@@ -11,7 +11,7 @@
         "ne2k.js state.js virtio.js bus.js elf.js kernel.js";
 
     var BROWSER_FILES = "main.js screen.js keyboard.js mouse.js speaker.js serial.js lib.js network.js starter.js worker_bus.js print_stats.js filestorage.js";
-    var LIB_FILES = "";
+    var LIB_FILES = "browserfs.min.js";
 
     // jor1k stuff
     LIB_FILES += " jor1k.js 9p.js filesystem.js marshall.js utf8.js";
