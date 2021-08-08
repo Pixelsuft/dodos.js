@@ -23,9 +23,7 @@
     }
 
     function set_title(text) {
-        document.title = text + " - Virtual x86" + (DEBUG ? " - debug" : "");
-        const description = document.querySelector("meta[name=description]");
-        description && (description.content = "Running " + text);
+        document.title = text + " - dodos.js");
     }
 
     function format_timestamp(time) {
@@ -204,7 +202,8 @@
                 "zip_size": 955729,
                 "on_load": msdos622
             },
-            memory_size: 64 * 1024 * 1024,
+            memory_size: document.getElementById("memory_size").value * 1024 * 1024,
+            video_memory_size: document.getElementById("video_memory_size").value * 1024 * 1024,
             boot_order: 0x132,
             name: "MS-DOS 6.22",
         }];
