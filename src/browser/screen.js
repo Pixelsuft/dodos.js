@@ -13,7 +13,8 @@ function ScreenAdapter(screen_container, bus) {
         graphic_screen = screen_container.getElementsByTagName("canvas")[0],
         graphic_context = graphic_screen.getContext("2d", {
             alpha: false
-        });
+        }),
+        loading_info = document.getElementById("loading_info");
 
     var
         graphic_image_data,
@@ -104,6 +105,13 @@ function ScreenAdapter(screen_container, bus) {
             return n;
     }
 
+    function set_info_status(text) {
+        const padding = parseInt(360 - (text.length / 2 * 9), undefined);
+        loading_info.style.paddingLeft = padding + "px";
+        loading_info.style.width = (720 - padding) + "px";
+        loading_info.textContent = text;
+    }
+
     function process_text(text) {
         if (is_loaded) {
             if (text.startsWith("dodosjs_autoexec_file_stopped")) {
@@ -116,24 +124,22 @@ function ScreenAdapter(screen_container, bus) {
             return;
         if (text.startsWith("  inflating: ")) {
             const zipfile = text.replace("inflating:", "").trim();
-            console.log("unzipping " + zipfile);
+            set_info_status("Unzipping " + zipfile + "...");
             return;
         }
         if (text.startsWith("Starting MS-DOS...")) {
-            console.log("starting...");
+            set_info_status("Starting...");
             return;
         }
         if (text.startsWith("HIMEM is testing extended memory...")) {
-            console.log("testing memory...");
-            return;
-        }
-        if (text.startsWith("HIMEM is testing extended memory...")) {
-            console.log("testing memory...");
+            set_info_status("Testing memory...");
             return;
         }
         if (text.startsWith("starting_dodosjs_autoexec_file")) {
+            set_info_status("Started!");
             is_loaded = true;
-            console.log("started!");
+            graphic_screen.style.display = "block";
+            loading_info.style.display = "none";
             return;
         }
         // console.log("%c" + text, "background-color: black; color: white;");
@@ -188,7 +194,7 @@ function ScreenAdapter(screen_container, bus) {
 
     graphic_context["imageSmoothingEnabled"] = false;
 
-    graphic_screen.style.display = "block";
+    graphic_screen.style.display = "none";
 
     this.bus = bus;
 
@@ -285,9 +291,11 @@ function ScreenAdapter(screen_container, bus) {
             graphic_screen.height = graphical_mode_height;
             graphic_screen.style.width = graphical_mode_width * scale_x + "px";
             graphic_screen.style.height = graphical_mode_height * scale_y + "px";
-            graphic_screen.style.display = "block";
+            if (is_loaded)
+                graphic_screen.style.display = "block";
         } else {
-            graphic_screen.style.display = "block";
+            if (is_loaded)
+                graphic_screen.style.display = "block";
             graphic_screen.width = 720;
             graphic_screen.height = 400;
             graphic_screen.style.width = 720 * scale_x + "px";
@@ -332,7 +340,8 @@ function ScreenAdapter(screen_container, bus) {
             height = buffer_height;
         }
 
-        graphic_screen.style.display = "block";
+        if (is_loaded)
+            graphic_screen.style.display = "block";
 
         graphic_screen.width = width;
         graphic_screen.height = height;
